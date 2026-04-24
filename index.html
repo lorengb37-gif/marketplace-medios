@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Marketplace de Ofertas de Medios</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FAFAFA;
+    --surface: #FFFFFF;
+    --ink: #0A0A0A;
+    --ink-2: #171717;
+    --ink-soft: #525252;
+    --ink-mute: #A3A3A3;
+    --line: #EAEAEA;
+    --line-soft: #F0F0F0;
+    --accent: #D4FF3A;        /* verde lima neón */
+    --accent-ink: #0A0A0A;    /* texto sobre acento */
+    --accent-soft: #EDFFAD;   /* soft version */
+  }
+
+  * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+  html, body {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    font-feature-settings: "ss01" on, "cv11" on;
+  }
+
+  .num { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+
+  /* === CARD === */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    transition: all .35s cubic-bezier(.22,.61,.36,1);
+    position: relative;
+    overflow: hidden;
+  }
+  .card:hover {
+    border-color: var(--ink);
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px -20px rgba(10,10,10,0.15), 0 8px 16px -8px rgba(10,10,10,0.08);
+  }
+
+  /* Corner tag visible on hover */
+  .card::after {
+    content: '';
+    position: absolute;
+    top: 16px; right: 16px;
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    opacity: 0;
+    transform: scale(0);
+    transition: all .4s cubic-bezier(.22,.61,.36,1);
+  }
+  .card:hover::after {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 0 4px var(--accent-soft);
+  }
+
+  /* === CTA === */
+  .cta {
+    background: var(--ink);
+    color: var(--surface);
+    border-radius: 999px;
+    font-weight: 600;
+    transition: all .3s cubic-bezier(.22,.61,.36,1);
+    position: relative;
+    overflow: hidden;
+  }
+  .cta-text, .cta-arrow {
+    position: relative; z-index: 2;
+    transition: transform .4s cubic-bezier(.22,.61,.36,1), color .25s ease;
+  }
+  .cta::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: var(--accent);
+    border-radius: 999px;
+    transform: scale(0);
+    transform-origin: center;
+    transition: transform .5s cubic-bezier(.22,.61,.36,1);
+    z-index: 1;
+  }
+  .cta:hover::before { transform: scale(1.1); }
+  .cta:hover .cta-text, .cta:hover .cta-arrow { color: var(--accent-ink); }
+  .cta:hover .cta-arrow { transform: translateX(4px); }
+
+  /* === FILTERS (pills) === */
+  .pill {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    transition: all .25s ease;
+  }
+  .pill:hover { border-color: var(--ink); }
+  .pill.active {
+    background: var(--ink);
+    color: var(--surface);
+    border-color: var(--ink);
+  }
+  .pill.active .pill-count {
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+
+  /* === BADGE === */
+  .badge-accent {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border-radius: 999px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+  .badge-ink {
+    background: var(--ink);
+    color: var(--surface);
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .badge-ghost {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: var(--ink-soft);
+    font-weight: 500;
+  }
+
+  /* === DATA TABLE === */
+  .data-table th {
+    color: var(--ink-mute);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .data-table td {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line-soft);
+    font-size: 13px;
+  }
+  .data-table tr:last-child td { border-bottom: 0; }
+
+  /* === STATS === */
+  .stat-block {
+    background: #F5F5F5;
+    border-radius: 16px;
+    padding: 16px;
+    transition: background .25s ease;
+  }
+  .stat-block:hover { background: var(--accent-soft); }
+
+  /* === SPLIT DIVIDER === */
+  .split-line {
+    background: repeating-linear-gradient(to right, var(--line-soft) 0, var(--line-soft) 4px, transparent 4px, transparent 8px);
+    height: 1px;
+  }
+
+  /* === HEADER GRADIENT BLOB === */
+  .hero-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  /* === STAGGER === */
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .stagger { animation: slideUp .6s cubic-bezier(.22,.61,.36,1) backwards; }
+
+  /* === PULSE DOT === */
+  .pulse-dot {
+    position: relative;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .pulse-dot::before {
+    content: '';
+    position: absolute; inset: -4px;
+    border-radius: 50%;
+    background: var(--accent);
+    opacity: 0.4;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0% { transform: scale(0.8); opacity: 0.4; }
+    100% { transform: scale(2); opacity: 0; }
+  }
+
+  /* === SCROLLBAR === */
+  .scroll-slim::-webkit-scrollbar { height: 4px; }
+  .scroll-slim::-webkit-scrollbar-track { background: transparent; }
+  .scroll-slim::-webkit-scrollbar-thumb { background: var(--line); border-radius: 2px; }
+
+  /* === MAP DOT ANIMATION === */
+  @keyframes mapPulse {
+    0%, 100% { transform: scale(1); opacity: 0.3; }
+    50% { transform: scale(1.4); opacity: 0.1; }
+  }
+  .map-pulse { animation: mapPulse 2.5s ease-in-out infinite; }
+
+  /* Price emphasis */
+  .price-mega {
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 0.95;
+  }
+
+  /* Headline treatment */
+  .headline {
+    letter-spacing: -0.04em;
+    line-height: 0.95;
+  }
+
+  /* Underline link hover */
+  .link-under {
+    background-image: linear-gradient(currentColor, currentColor);
+    background-size: 100% 1px;
+    background-position: 0 100%;
+    background-repeat: no-repeat;
+    transition: background-size .3s;
+  }
+  .link-under:hover { background-size: 0% 1px; }
+
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useMemo } = React;
+
+/* =======================================================================
+   DATA LAYER
+   ======================================================================= */
+
+const ofertas = [
+  {
+    id: "prop-100-1-bloque-musical-madres-2026",
+    medio: {
+      nombre: "100.1 FM",
+      tagline: "Santo Domingo's Greatest Hit",
+      tipo: "RADIO",
+      categoria: "FM · Música",
+      mercado: "Santo Domingo"
+    },
+    oferta: {
+      titulo: "Patrocinio Bloque Musical",
+      subtitulo: "Especial Día de las Madres",
+      tipo_comercial: "PATROCINIO_MENSUAL",
+      estacionalidad: "Día de las Madres",
+      descripcion: "3 bloques diarios de 30 min sin pausa, con presentación, despedida y 6 cuñas diarias alegóricas al Día de las Madres."
+    },
+    entregables: {
+      bloques_diarios: 3,
+      duracion_bloque_min: 30,
+      cunas_diarias: 6,
+      dias: "Lun–Vie"
+    },
+    vigencia: "Mensual · Mayo 2026",
+    inversion: {
+      moneda: "RD$",
+      items: [
+        { concepto: "Valor negociado mensual", monto: 175000 },
+        { concepto: "Producción de talento",   monto: 20000 }
+      ],
+      nota: "+ ITBIS"
+    },
+    destacado: true
+  },
+
+  {
+    id: "prop-teleantillas-primetime-2026",
+    medio: {
+      nombre: "Teleantillas",
+      tagline: "Canal 2 · TV abierta",
+      tipo: "TV",
+      categoria: "TV Abierta",
+      mercado: "Nacional"
+    },
+    oferta: {
+      titulo: "Pauta Prime Time",
+      subtitulo: "Parrilla rotativa de spots 30\"",
+      tipo_comercial: "PARRILLA_SPOTS",
+      descripcion: "30 spots semanales distribuidos en franjas de alto rating con rotación garantizada en programas líderes."
+    },
+    spots: [
+      { franja: "06:00–09:00", programa: "El Despertar",         spots_semana: 5,  costo_unit: 4500 },
+      { franja: "12:00–14:00", programa: "Mediodía Informativo", spots_semana: 7,  costo_unit: 6200 },
+      { franja: "19:00–21:00", programa: "Prime Novela",         spots_semana: 10, costo_unit: 9800 },
+      { franja: "21:00–23:00", programa: "Zona Deportiva",       spots_semana: 8,  costo_unit: 7500 }
+    ],
+    vigencia: "15 Abr – 31 May 2026",
+    inversion: { moneda: "RD$", total_mensual: 892000, nota: "+ ITBIS · Bono 10%" }
+  },
+
+  {
+    id: "prop-valla-27feb-lincoln-2026",
+    medio: {
+      nombre: "Publivallas RD",
+      tagline: "OOH Premium",
+      tipo: "OOH",
+      categoria: "Exterior",
+      mercado: "Distrito Nacional"
+    },
+    oferta: {
+      titulo: "Valla Premium 27 de Febrero",
+      subtitulo: "Esq. Lincoln · Cara Este",
+      tipo_comercial: "OOH_ESTATICA",
+      descripcion: "Valla iluminada de alta visibilidad en uno de los cruces de mayor tráfico del Distrito Nacional."
+    },
+    especificaciones: {
+      dimensiones: "14 × 4 m",
+      tipo: "Iluminada 24/7"
+    },
+    vigencia: "3 meses · Renovable",
+    inversion: {
+      moneda: "RD$",
+      items: [
+        { concepto: "Alquiler mensual",              monto: 145000 },
+        { concepto: "Producción lona + instalación", monto: 38000 }
+      ],
+      nota: "+ ITBIS"
+    }
+  },
+
+  {
+    id: "prop-diariolibre-encarte-2026",
+    medio: {
+      nombre: "Diario Libre",
+      tagline: "Prensa nacional",
+      tipo: "IMPRESO",
+      categoria: "Prensa",
+      mercado: "Nacional"
+    },
+    oferta: {
+      titulo: "Encarte Back-to-School",
+      subtitulo: "Media página · Edición dominical",
+      tipo_comercial: "PUBLICACION_IMPRESA",
+      descripcion: "Encarte de media página full color en edición dominical con distribución nacional."
+    },
+    entregables_impreso: {
+      formato: "½ página horizontal",
+      color: "Full color",
+      ediciones: 4,
+      seccion: "Principal"
+    },
+    vigencia: "Domingos · Ago 2026",
+    inversion: {
+      moneda: "RD$",
+      items: [
+        { concepto: "4 inserciones dominicales", monto: 264000 }
+      ],
+      nota: "+ ITBIS · Arte por cliente"
+    }
+  }
+];
+
+/* =======================================================================
+   HELPERS
+   ======================================================================= */
+
+const fmt = (n) => n.toLocaleString('es-DO', { maximumFractionDigits: 0 });
+
+const mediaMeta = {
+  TV:      { label: "TV",       dot: "#FF6B4A" },
+  RADIO:   { label: "Radio",    dot: "#D4FF3A" },
+  OOH:     { label: "Exterior", dot: "#6BCFFF" },
+  IMPRESO: { label: "Impreso",  dot: "#FFB84A" }
+};
+
+/* =======================================================================
+   LOGO
+   ======================================================================= */
+
+const LogoMark = ({ medio }) => {
+  if (medio.nombre === "100.1 FM") {
+    return (
+      <svg viewBox="0 0 60 44" className="w-14 h-11 rounded-xl overflow-hidden" style={{ borderRadius: "12px" }}>
+        <rect width="60" height="44" rx="12" fill="#1E2A8C" />
+        <path d="M 45 0 L 60 0 L 60 44 L 30 44 Z" fill="#E30613" />
+        <text x="30" y="24" textAnchor="middle" fill="white" fontSize="12" fontWeight="800" fontFamily="Plus Jakarta Sans">100.1</text>
+        <text x="30" y="35" textAnchor="middle" fill="white" fontSize="6" fontWeight="700" fontFamily="Plus Jakarta Sans" opacity="0.9" letterSpacing="1">FM</text>
+      </svg>
+    );
+  }
+  const mediosLogos = {
+    "Teleantillas":    { bg: "#E11D48", text: "T2" },
+    "Publivallas RD":  { bg: "#16A34A", text: "PV" },
+    "Diario Libre":    { bg: "#DC2626", text: "DL" }
+  };
+  const l = mediosLogos[medio.nombre] || { bg: "#0A0A0A", text: "??" };
+  return (
+    <div className="w-14 h-11 rounded-xl flex items-center justify-center font-extrabold text-white text-base"
+         style={{ background: l.bg }}>
+      {l.text}
+    </div>
+  );
+};
+
+/* =======================================================================
+   RENDERERS ADAPTATIVOS
+   ======================================================================= */
+
+const RenderPatrocinio = ({ data }) => {
+  const { entregables, inversion } = data;
+  const total = inversion.items.reduce((s, i) => s + i.monto, 0);
+
+  return (
+    <>
+      {/* Key points grid */}
+      <div className="grid grid-cols-4 gap-2 mb-6">
+        <KeyPoint value={entregables.bloques_diarios} label="Bloques" />
+        <KeyPoint value={entregables.duracion_bloque_min} label="Min c/u" />
+        <KeyPoint value={entregables.cunas_diarias} label="Cuñas" />
+        <KeyPoint value={entregables.dias} label="Días" small />
+      </div>
+
+      {/* Desglose */}
+      <div className="space-y-2 mb-5">
+        {inversion.items.map((item, i) => (
+          <div key={i} className="flex justify-between items-baseline text-sm">
+            <span className="text-neutral-500">{item.concepto}</span>
+            <span className="num font-semibold text-neutral-900">{fmt(item.monto)}</span>
+          </div>
+        ))}
+      </div>
+
+      <PriceBlock total={total} moneda={inversion.moneda} nota={inversion.nota} />
+    </>
+  );
+};
+
+const RenderParrilla = ({ data }) => {
+  const { spots, inversion } = data;
+  const totalSpots = spots.reduce((s, x) => s + x.spots_semana, 0);
+
+  return (
+    <>
+      {/* Summary strip */}
+      <div className="flex items-center gap-4 mb-5 pb-5 border-b border-neutral-100">
+        <div>
+          <div className="num price-mega text-4xl">{totalSpots}</div>
+          <div className="text-xs text-neutral-500 font-medium mt-1">spots/semana</div>
+        </div>
+        <div className="w-px h-10 bg-neutral-200"></div>
+        <div>
+          <div className="num price-mega text-4xl">{spots.length}</div>
+          <div className="text-xs text-neutral-500 font-medium mt-1">franjas activas</div>
+        </div>
+      </div>
+
+      <table className="w-full data-table mb-5">
+        <thead>
+          <tr>
+            <th className="text-left">Franja</th>
+            <th className="text-left">Programa</th>
+            <th className="text-right">×</th>
+            <th className="text-right">Unit.</th>
+          </tr>
+        </thead>
+        <tbody>
+          {spots.map((row, i) => (
+            <tr key={i}>
+              <td className="num text-neutral-500">{row.franja}</td>
+              <td className="font-medium">{row.programa}</td>
+              <td className="text-right num font-bold">{row.spots_semana}</td>
+              <td className="text-right num text-neutral-600">{fmt(row.costo_unit)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <PriceBlock total={inversion.total_mensual} moneda={inversion.moneda} nota={inversion.nota} />
+    </>
+  );
+};
+
+const RenderOOH = ({ data }) => {
+  const { especificaciones, inversion } = data;
+  const total = inversion.items.reduce((s, i) => s + i.monto, 0);
+
+  return (
+    <>
+      {/* Mapa */}
+      <div className="relative h-36 rounded-2xl overflow-hidden mb-5" style={{ background: "#F5F5F5" }}>
+        <svg viewBox="0 0 400 150" className="absolute inset-0 w-full h-full">
+          <defs>
+            <pattern id="grid-v3" width="24" height="24" patternUnits="userSpaceOnUse">
+              <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#E5E5E5" strokeWidth="1"/>
+            </pattern>
+          </defs>
+          <rect width="400" height="150" fill="url(#grid-v3)" />
+
+          {/* Calles con trazo redondeado */}
+          <line x1="0" y1="75" x2="400" y2="75" stroke="#E5E5E5" strokeWidth="18" strokeLinecap="round" />
+          <line x1="0" y1="75" x2="400" y2="75" stroke="#FAFAFA" strokeWidth="1" strokeDasharray="10 8" />
+          <line x1="210" y1="0" x2="210" y2="150" stroke="#E5E5E5" strokeWidth="14" strokeLinecap="round" />
+          <line x1="210" y1="0" x2="210" y2="150" stroke="#FAFAFA" strokeWidth="1" strokeDasharray="8 6" />
+
+          {/* Bloques */}
+          <rect x="20" y="16" width="170" height="42" rx="6" fill="#EAEAEA" />
+          <rect x="230" y="16" width="155" height="42" rx="6" fill="#EAEAEA" />
+          <rect x="20" y="92" width="170" height="42" rx="6" fill="#EAEAEA" />
+          <rect x="230" y="92" width="155" height="42" rx="6" fill="#EAEAEA" />
+
+          {/* Pin acento */}
+          <g transform="translate(210, 75)">
+            <circle r="28" fill="#D4FF3A" className="map-pulse" style={{ transformOrigin: "210px 75px" }}/>
+            <circle r="14" fill="#D4FF3A" />
+            <circle r="6" fill="#0A0A0A" />
+          </g>
+
+          {/* Labels */}
+          <text x="22" y="12" fontSize="9" fill="#737373" fontWeight="600" fontFamily="Plus Jakarta Sans">27 de Febrero</text>
+          <text x="214" y="145" fontSize="9" fill="#737373" fontWeight="600" fontFamily="Plus Jakarta Sans">Lincoln</text>
+        </svg>
+
+        {/* Tag flotante */}
+        <div className="absolute bottom-3 right-3 bg-white rounded-full px-3 py-1 text-[10px] font-semibold shadow-sm border border-neutral-200">
+          📍 Distrito Nacional
+        </div>
+      </div>
+
+      {/* Specs en grid */}
+      <div className="grid grid-cols-2 gap-2 mb-5">
+        <KeyPoint value={especificaciones.dimensiones} label="Dimensiones" small />
+        <KeyPoint value={especificaciones.tipo} label="Formato" small />
+      </div>
+
+      <div className="space-y-2 mb-5">
+        {inversion.items.map((item, i) => (
+          <div key={i} className="flex justify-between items-baseline text-sm">
+            <span className="text-neutral-500">{item.concepto}</span>
+            <span className="num font-semibold text-neutral-900">{fmt(item.monto)}</span>
+          </div>
+        ))}
+      </div>
+
+      <PriceBlock total={total} moneda={inversion.moneda} nota={inversion.nota} />
+    </>
+  );
+};
+
+const RenderImpreso = ({ data }) => {
+  const { entregables_impreso, inversion } = data;
+  const total = inversion.items.reduce((s, i) => s + i.monto, 0);
+
+  return (
+    <>
+      <div className="flex gap-5 mb-5">
+        {/* Mock del periódico */}
+        <div className="relative w-20 h-28 bg-white rounded-lg shrink-0 border border-neutral-200 overflow-hidden shadow-sm">
+          <div className="h-3 bg-neutral-900 flex items-center px-1.5">
+            <span className="text-[5px] text-white font-extrabold tracking-wider">DIARIO</span>
+          </div>
+          <div className="p-1.5 space-y-1">
+            <div className="h-1 bg-neutral-800 rounded-sm w-full" />
+            <div className="h-1 bg-neutral-800 rounded-sm w-2/3" />
+            <div className="h-5 bg-neutral-100 rounded mt-1" />
+            <div className="h-0.5 bg-neutral-300 rounded-full w-full" />
+            <div className="h-0.5 bg-neutral-300 rounded-full w-4/5" />
+            <div className="h-0.5 bg-neutral-300 rounded-full w-full" />
+          </div>
+          {/* Anuncio resaltado */}
+          <div className="absolute bottom-1.5 left-1.5 right-1.5 h-5 rounded flex items-center justify-center" style={{ background: "#D4FF3A" }}>
+            <span className="text-[5px] font-extrabold tracking-wider">TU ANUNCIO</span>
+          </div>
+        </div>
+
+        <div className="flex-1 space-y-3">
+          <SpecItem label="Formato" value={entregables_impreso.formato} />
+          <SpecItem label="Color" value={entregables_impreso.color} />
+          <SpecItem label="Sección" value={entregables_impreso.seccion} />
+          <SpecItem label="Ediciones" value={`${entregables_impreso.ediciones} domingos`} />
+        </div>
+      </div>
+
+      <PriceBlock total={total} moneda={inversion.moneda} nota={inversion.nota} />
+    </>
+  );
+};
+
+/* =======================================================================
+   ATOMS
+   ======================================================================= */
+
+const KeyPoint = ({ value, label, small }) => (
+  <div className="stat-block">
+    <div className={`font-extrabold text-neutral-900 leading-none num ${small ? "text-sm mt-1" : "text-2xl"}`}>
+      {value}
+    </div>
+    <div className="text-[10px] uppercase tracking-wider text-neutral-500 font-semibold mt-2">
+      {label}
+    </div>
+  </div>
+);
+
+const SpecItem = ({ label, value }) => (
+  <div>
+    <div className="text-[10px] uppercase tracking-wider text-neutral-400 font-semibold mb-0.5">{label}</div>
+    <div className="text-sm font-semibold text-neutral-900">{value}</div>
+  </div>
+);
+
+const PriceBlock = ({ total, moneda, nota }) => (
+  <div className="flex items-end justify-between pt-5 border-t border-neutral-100">
+    <div>
+      <div className="text-[10px] uppercase tracking-wider text-neutral-500 font-semibold">Inversión</div>
+      <div className="text-[11px] text-neutral-400">{nota}</div>
+    </div>
+    <div className="text-right">
+      <div className="text-xs text-neutral-500 font-semibold mb-0.5">{moneda}</div>
+      <div className="price-mega num text-4xl text-neutral-900">
+        {fmt(total)}
+      </div>
+    </div>
+  </div>
+);
+
+/* =======================================================================
+   CARD
+   ======================================================================= */
+
+const DynamicCard = ({ data, index }) => {
+  const meta = mediaMeta[data.medio.tipo];
+
+  const renderBody = () => {
+    switch (data.oferta.tipo_comercial) {
+      case "PATROCINIO_MENSUAL":   return <RenderPatrocinio data={data} />;
+      case "PARRILLA_SPOTS":       return <RenderParrilla   data={data} />;
+      case "OOH_ESTATICA":         return <RenderOOH        data={data} />;
+      case "PUBLICACION_IMPRESA":  return <RenderImpreso    data={data} />;
+      default: return null;
+    }
+  };
+
+  return (
+    <article
+      className="card stagger p-6 flex flex-col"
+      style={{ animationDelay: `${index * 0.08}s` }}
+    >
+      {/* Header: Logo + tipo + destacado */}
+      <div className="flex items-start justify-between mb-5">
+        <div className="flex items-center gap-3">
+          <LogoMark medio={data.medio} />
+          <div>
+            <div className="text-sm font-bold text-neutral-900">{data.medio.nombre}</div>
+            <div className="text-xs text-neutral-500">{data.medio.tagline}</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 badge-ghost px-2.5 py-1 text-[10px]">
+          <span className="w-1.5 h-1.5 rounded-full" style={{ background: meta.dot }}></span>
+          <span>{meta.label}</span>
+        </div>
+      </div>
+
+      {/* Título de la oferta */}
+      <div className="mb-4">
+        <h3 className="headline text-[26px] font-extrabold text-neutral-900 mb-1">
+          {data.oferta.titulo}
+        </h3>
+        {data.oferta.subtitulo && (
+          <p className="text-sm text-neutral-500 font-medium">{data.oferta.subtitulo}</p>
+        )}
+      </div>
+
+      {/* Descripción */}
+      <p className="text-[13px] text-neutral-600 leading-relaxed mb-5">
+        {data.oferta.descripcion}
+      </p>
+
+      {/* Tags */}
+      <div className="flex flex-wrap items-center gap-1.5 mb-6">
+        <span className="badge-ghost px-2.5 py-1 text-[10px]">
+          {data.vigencia}
+        </span>
+        {data.oferta.estacionalidad && (
+          <span className="badge-accent px-2.5 py-1 text-[10px]">
+            ✦ {data.oferta.estacionalidad}
+          </span>
+        )}
+        {data.destacado && (
+          <span className="badge-ink px-2.5 py-1 text-[10px] uppercase tracking-wider">
+            Destacado
+          </span>
+        )}
+      </div>
+
+      {/* Body adaptativo */}
+      <div className="flex-1 mb-6">
+        {renderBody()}
+      </div>
+
+      {/* CTA */}
+      <button className="cta w-full py-3.5 flex items-center justify-center gap-2 text-sm">
+        <span className="cta-text">Me interesa esta oferta</span>
+        <svg className="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M5 12h14M13 5l7 7-7 7"/>
+        </svg>
+      </button>
+    </article>
+  );
+};
+
+/* =======================================================================
+   HEADER / HERO
+   ======================================================================= */
+
+const Hero = ({ totalOfertas }) => {
+  return (
+    <header className="relative overflow-hidden">
+      {/* Decorative blobs */}
+      <div className="hero-blob" style={{ background: "#D4FF3A", top: "-100px", right: "10%", width: "400px", height: "400px" }}></div>
+      <div className="hero-blob" style={{ background: "#6BCFFF", top: "50px", left: "-100px", width: "300px", height: "300px", opacity: 0.2 }}></div>
+
+      {/* Top nav */}
+      <nav className="relative max-w-7xl mx-auto px-6 py-5 flex items-center justify-between border-b border-neutral-200/60 z-10">
+        <div className="flex items-center gap-2.5">
+          <div className="relative w-9 h-9 rounded-xl flex items-center justify-center font-extrabold text-white bg-neutral-900">
+            <span className="relative z-10">M+</span>
+            <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full" style={{ background: "var(--accent)" }}></div>
+          </div>
+          <div>
+            <div className="text-sm font-extrabold tracking-tight">Media Marketplace</div>
+            <div className="text-[10px] text-neutral-500 font-medium">Panel de Agencia</div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-2 text-xs font-semibold text-neutral-700">
+            <div className="pulse-dot"></div>
+            <span>{totalOfertas} ofertas activas</span>
+          </div>
+          <div className="w-9 h-9 rounded-full bg-neutral-900 text-white flex items-center justify-center text-xs font-extrabold">
+            MA
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero content */}
+      <div className="relative max-w-7xl mx-auto px-6 py-16 z-10">
+        <div className="max-w-4xl">
+          <div className="inline-flex items-center gap-2 mb-6 badge-ghost px-3 py-1.5 text-[11px] font-semibold">
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--accent)" }}></span>
+            <span>Actualizado esta semana</span>
+          </div>
+
+          <h1 className="headline text-5xl md:text-7xl font-extrabold text-neutral-900 mb-5">
+            Ofertas de medios,<br/>
+            <span className="relative inline-block">
+              listas para ti.
+              <svg className="absolute -bottom-2 left-0 w-full" height="12" viewBox="0 0 400 12" preserveAspectRatio="none">
+                <path d="M2 8 Q 100 2, 200 6 T 398 4" stroke="#D4FF3A" strokeWidth="6" fill="none" strokeLinecap="round"/>
+              </svg>
+            </span>
+          </h1>
+
+          <p className="text-lg text-neutral-600 font-medium max-w-2xl mb-8 leading-relaxed">
+            TV, radio, exterior, impreso. Todas las propuestas que recibimos, analizadas y enlistadas para nuestros clientes.
+          </p>
+
+          {/* Quick stats inline */}
+          <div className="flex flex-wrap items-center gap-6 md:gap-10">
+            <InlineStat num={totalOfertas} label="Ofertas activas" />
+            <div className="w-px h-10 bg-neutral-300 hidden sm:block"></div>
+            <InlineStat num="4" label="Tipos de medio" />
+            <div className="w-px h-10 bg-neutral-300 hidden sm:block"></div>
+            <InlineStat num="RD$ 1.3M" label="Inversión disponible" />
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+};
+
+const InlineStat = ({ num, label }) => (
+  <div>
+    <div className="headline text-3xl font-extrabold text-neutral-900 num">{num}</div>
+    <div className="text-xs text-neutral-500 font-semibold mt-1">{label}</div>
+  </div>
+);
+
+/* =======================================================================
+   APP
+   ======================================================================= */
+
+const App = () => {
+  const [filter, setFilter] = useState("ALL");
+  const filters = [
+    { key: "ALL",     label: "Todas",    count: ofertas.length },
+    { key: "TV",      label: "TV",       count: ofertas.filter(o => o.medio.tipo === "TV").length },
+    { key: "RADIO",   label: "Radio",    count: ofertas.filter(o => o.medio.tipo === "RADIO").length },
+    { key: "OOH",     label: "Exterior", count: ofertas.filter(o => o.medio.tipo === "OOH").length },
+    { key: "IMPRESO", label: "Impreso",  count: ofertas.filter(o => o.medio.tipo === "IMPRESO").length }
+  ];
+
+  const visible = useMemo(
+    () => filter === "ALL" ? ofertas : ofertas.filter(o => o.medio.tipo === filter),
+    [filter]
+  );
+
+  return (
+    <div className="min-h-screen">
+      <Hero totalOfertas={ofertas.length} />
+
+      <main className="max-w-7xl mx-auto px-6 py-12">
+        {/* Section header + filters */}
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-5 mb-8">
+          <div>
+            <h2 className="headline text-3xl md:text-4xl font-extrabold text-neutral-900 mb-1">
+              Disponibles ahora
+            </h2>
+            <p className="text-sm text-neutral-500 font-medium">
+              {visible.length} {visible.length === 1 ? "oferta" : "ofertas"} · actualizado hace unos minutos
+            </p>
+          </div>
+        </div>
+
+        {/* Filter pills */}
+        <div className="flex items-center gap-2 mb-10 overflow-x-auto scroll-slim pb-1 -mx-1 px-1">
+          {filters.map(f => (
+            <button
+              key={f.key}
+              onClick={() => setFilter(f.key)}
+              className={`pill shrink-0 px-4 py-2 text-xs font-semibold flex items-center gap-2 ${filter === f.key ? "active" : ""}`}
+            >
+              <span>{f.label}</span>
+              <span className={`pill-count text-[10px] px-1.5 py-0.5 rounded-full font-bold ${filter === f.key ? "" : "bg-neutral-100 text-neutral-500"}`}>
+                {f.count}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {/* Grid */}
+        <div key={filter} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {visible.map((oferta, i) => (
+            <DynamicCard key={oferta.id} data={oferta} index={i} />
+          ))}
+        </div>
+
+        {/* Footer */}
+        <footer className="mt-20 pt-8 border-t border-neutral-200 flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="relative w-7 h-7 rounded-lg flex items-center justify-center font-extrabold text-white bg-neutral-900 text-xs">
+              M+
+            </div>
+            <div className="text-xs text-neutral-500 font-semibold">
+              Media Marketplace · Panel Interno de Agencia
+            </div>
+          </div>
+          <div className="text-xs text-neutral-400 font-medium">
+            {visible.length} de {ofertas.length} ofertas mostradas
+          </div>
+        </footer>
+      </main>
+    </div>
+  );
+};
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>
